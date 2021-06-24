@@ -1,3 +1,6 @@
+library(ggplot2)
+library(ROCR)
+
 normalized<-function(y) {
 x<-y[!is.na(y)]
 x<-(x - min(x)) / (max(x) - min(x))
@@ -204,4 +207,29 @@ revel_box <- data.frame(as.numeric(as.character(boxdata$REVEL.Score)),boxdata$Ph
 revel_box <- revel_box[!is.na(revel_box$as.numeric.as.character.boxdata.REVEL.Score..),]
 ggplot(revel_box, aes(x=revel_box$boxdata.PharmGKB.evidence.level,y=revel_box$as.numeric.as.character.boxdata.REVEL.Score..)) + geom_boxplot(width=0.4) + ggtitle("f) REVEL") + xlab("Category") + ylab("Score") + ylim(0,1) + stat_boxplot(geom ='errorbar', width = 0.3) + theme_bw()
 
+#Adjusted p-value calculations
+# t-test to evaluate significance of differences between
+# area under the curve and MCC for the 6 predictors
+# for type A and type B variants
+
+# data taken from table 2
+
+perf <- data.frame(row.names=c("auc_typeA","mcc_typeA","auc_typeB","mcc_typeB"))
+perf["PolyPhen2"] = c(0.852, 0.489, 0.397, 0.00338)
+perf["MutPred"] = c( 0.975, 0.788, 0.682, 0.300)
+perf["REVEL"] = c( 0.942, 0.794, 0.498 ,0.106)
+perf["SIFT"] = c( 0.774, 0.358, 0.410, -0.0400)
+perf["CADD"] = c( 0.728, 0.321, 0.461, 0.118)
+perf["MutationAssessor"] = c( 0.763, 0.396, 0.427, 0.0764)
+
+# perform paired t-test (1-sided)
+auc_tt<-t.test(x=t(perf[1,]),y=t(perf[3,]),pair=TRUE, alternative="greater")
+mcc_tt<-t.test(x=t(perf[2,]),y=t(perf[4,]),pair=TRUE, alternative="greater")
+
+# bonferroni adjusted difference between type a and type b over all 6 methods
+print("AUC ttest (Bonf. Corrected)")
+print(p.adjust(auc_tt$p.value, "bonferroni",6))
+# MCC corrected p-value comes in at 0.004 - robustly confirming your observation
+print("MCC ttest (Bonf. Corrected)")
+print(p.adjust(mcc_tt$p.value, "bonferroni",6))
 
